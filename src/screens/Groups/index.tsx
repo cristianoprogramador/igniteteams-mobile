@@ -1,72 +1,82 @@
 
-import { Button } from '@components/Button';
+import { useState, useCallback } from 'react';
+import { Alert, FlatList } from 'react-native';
+
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
+
+import { groupGetAll } from '@storage/group/groupGetAll';
+
 import { GroupCard } from '@components/GroupCard';
 import { Header } from '@components/Header';
 import { Highlight } from '@components/Highlight';
 import { ListEmpty } from '@components/ListEmpty';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { groupsGetAll } from '@storage/group/groupGetAll';
-import { useState, useEffect, useCallback } from 'react';
-import { FlatList } from 'react-native';
-import { Container } from './styles';
+import { Button } from '@components/Button';
 
+import { Container } from './styles';
+import { Loading } from '@components/Loading';
 
 export function Groups() {
-  const [groups, setGroups] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [groups, setGroups] = useState<string[]>([]);
 
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
   function handleNewGroup() {
-    navigation.navigate('new')
+    navigation.navigate('new');
   }
 
   async function fetchGroups() {
     try {
-      const data = await groupsGetAll()
+      setIsLoading(true)
+
+      const data = await groupGetAll();
       setGroups(data)
+
+      setIsLoading(false)
     } catch (error) {
-      console.log(error)
+      console.log(error);
+      Alert.alert('Turmas', 'Não foi possivel carregar as turmas')
     }
   }
 
-  function handleOpenGroup(group: string){
-    navigation.navigate('players', {group})
+  function handleOpenGroup(group: string) {
+    navigation.navigate('players', { group })
   }
 
-  useFocusEffect(useCallback(()=>{
+  useFocusEffect(useCallback(() => {
     fetchGroups()
-  },[]))
+  }, []))
+
 
   return (
     <Container>
       <Header />
       <Highlight
         title="Turmas"
-        subtitle='jogue com a sua turma'
+        subtitle="jogue com sua turma"
       />
+      {
+        isLoading ? <Loading /> :
+          <FlatList
+            data={groups}
+            keyExtractor={item => item}
+            renderItem={({ item }) => (
+              <GroupCard
+                title={item}
+                onPress={() => handleOpenGroup(item)}
+              />
+            )}
+            contentContainerStyle={groups.length === 0 && { flex: 1 }}
+            ListEmptyComponent={() => (
+              <ListEmpty message="Que tal cadastrar a primeira turma?" />
+            )}
+          />
+      }
 
-      <FlatList
-        data={groups}
-        keyExtractor={item => item}
-        renderItem={({ item }) => (
-          <GroupCard
-            title={item}
-            onPress={() => handleOpenGroup(item)}
-          />
-        )}
-        contentContainerStyle={groups.length === 0 && { flex: 1 }}
-        ListEmptyComponent={() => (
-          <ListEmpty
-            message="Que tal cadastrar a primeira turma?"
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-      />
       <Button
-        title="Criar nova Turma"
+        title='Criar nova turma'
         onPress={handleNewGroup}
       />
     </Container>
   );
 }
-
